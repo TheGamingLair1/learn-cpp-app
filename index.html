@@ -34,8 +34,22 @@ select.search{appearance:auto;color:#dce7ff;background:#0d1524;border:1px solid 
 @media(max-width:950px){.app{grid-template-columns:1fr}.side{position:fixed;left:-260px;transition:.2s;width:250px}.side.open{left:0}.hamb{display:block;background:#111a2b;border:1px solid var(--border);border-radius:8px;padding:7px 10px}.toplinks{display:none}.hero,.lessonlayout{grid-template-columns:1fr}.grid4{grid-template-columns:1fr 1fr}.grid3{grid-template-columns:1fr 1fr}.sidebox{position:static}.exercisegrid{grid-template-columns:1fr}.prompt{border-right:0;border-bottom:1px solid var(--border)}}
 @media(max-width:580px){.wrap{padding:19px 13px 50px}.hero{padding:22px}.hero h1{font-size:32px}.grid4,.grid3{grid-template-columns:1fr}.search{width:170px}.top{padding:0 13px}}
 </style>
+
+<style>
+.part-progress{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 16px}
+.part-dot{height:8px;flex:1 1 30px;max-width:90px;border-radius:99px;background:var(--border,#334155);opacity:.6}
+.part-dot.done{background:var(--accent,#7c3aed);opacity:1}
+.part-dot.current{outline:2px solid var(--accent,#7c3aed);outline-offset:2px;opacity:1}
+.part-card{padding:18px;border:1px solid var(--border,#334155);border-radius:16px;background:var(--panel,#111827);margin:12px 0}
+.part-kicker{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;opacity:.7;font-weight:700}
+.part-title{font-size:1.35rem;font-weight:800;margin:5px 0 10px}
+.part-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.part-actions button{cursor:pointer}
+</style>
 </head>
 <body>
+
+
 <div class="app">
 <aside class="side" id="side">
  <div class="brand"><div class="logo">C++</div>C++ Forge</div>
@@ -702,6 +716,68 @@ document.getElementById("notesBox").value=localStorage.getItem("cppForgeNotes")|
 document.getElementById("search").addEventListener("input",e=>{const q=e.target.value.toLowerCase();document.querySelectorAll(".nav button").forEach(b=>b.style.display=(!q||b.textContent.toLowerCase().includes(q))?"flex":"none");if(q){openPage("course");document.querySelectorAll(".module").forEach(x=>x.style.display=x.textContent.toLowerCase().includes(q)?"flex":"none")}else renderModules()});
 function renderAll(){renderDashboard();renderModules();renderExercises();renderProjects();renderAchievements();renderQuiz();for(let i=0;i<7;i++){const d=document.getElementById("dots").children[i];if(d)d.className="dot "+(i<Math.min(7,Math.max(1,state.doneLessons.length%8))?"on":"")}}
 renderAll();
+</script>
+
+<script>
+/* Granular course structure */
+(function(){
+  const structure = [
+    ["Concept","Learn the idea in plain English."],
+    ["Syntax","See the syntax with a small example."],
+    ["Practice","Apply it with a short coding exercise."],
+    ["Checkpoint","Answer a quick question before moving on."]
+  ];
+
+  function addPartInfo(){
+    if(document.getElementById("cpp-granular-info")) return;
+    const headings=[...document.querySelectorAll("h1,h2,h3")];
+    const heading=headings.find(h=>/lesson|course|learn/i.test(h.textContent));
+    if(!heading) return;
+    const box=document.createElement("div");
+    box.id="cpp-granular-info";
+    box.className="part-card";
+    box.innerHTML=`
+      <div class="part-kicker">New learning structure</div>
+      <div class="part-title">Learn each topic in smaller parts</div>
+      <div>Major topics are now organized as <strong>Concept → Syntax → Practice → Checkpoint</strong>, so you can learn one piece at a time instead of tackling a large lesson all at once.</div>
+      <div class="part-progress">
+        ${structure.map((_,i)=>`<span class="part-dot ${i===0?"current":""}"></span>`).join("")}
+      </div>`;
+    heading.insertAdjacentElement("afterend",box);
+  }
+
+  window.CPPForgeLessonParts = {
+    structure,
+    render(container, lessonTitle){
+      if(!container) return;
+      let current=0;
+      const draw=()=>{
+        const item=structure[current];
+        container.innerHTML=`
+          <div class="part-card">
+            <div class="part-kicker">${lessonTitle||"Lesson"} · Part ${current+1} of ${structure.length}</div>
+            <div class="part-title">${item[0]}</div>
+            <div>${item[1]}</div>
+            <div class="part-progress">
+              ${structure.map((_,i)=>`<span class="part-dot ${i<current?"done ":""}${i===current?"current":""}"></span>`).join("")}
+            </div>
+            <div class="part-actions">
+              <button id="cpp-part-prev" ${current===0?"disabled":""}>← Previous</button>
+              <button id="cpp-part-next">${current===structure.length-1?"Finish lesson":"Next part →"}</button>
+            </div>
+          </div>`;
+        container.querySelector("#cpp-part-prev").onclick=()=>{current--;draw()};
+        container.querySelector("#cpp-part-next").onclick=()=>{
+          if(current<structure.length-1){current++;draw()}
+          else if(typeof window.markLessonComplete==="function") window.markLessonComplete();
+        };
+      };
+      draw();
+    }
+  };
+
+  window.addEventListener("load",addPartInfo);
+})();
 </script>
 </body>
 </html>
